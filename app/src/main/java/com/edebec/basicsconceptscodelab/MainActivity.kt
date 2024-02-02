@@ -3,11 +3,16 @@ package com.edebec.basicsconceptscodelab
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.MaterialTheme
@@ -16,7 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,9 +34,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             BasicsConceptsCodelabTheme {
-                // A surface container using the 'background' color from the theme
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    Greeting("Android")
+                    MyApp(modifier = Modifier.fillMaxSize())
                 }
             }
         }
@@ -50,14 +54,12 @@ fun OnboardingScreen(modifier: Modifier = Modifier, onContinueClicked: () -> Uni
 
 @Composable
 fun MyApp(modifier: Modifier = Modifier) {
-    var shouldShowOnboarding by remember {
+    var shouldShowOnboarding by rememberSaveable {
         mutableStateOf(true)
     }
     Surface(modifier) {
         if (shouldShowOnboarding) {
-            OnboardingScreen {
-                shouldShowOnboarding = true
-            }
+            OnboardingScreen(onContinueClicked = { shouldShowOnboarding = false })
         } else {
             Greetings()
         }
@@ -65,9 +67,9 @@ fun MyApp(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun Greetings(modifier: Modifier = Modifier, names: List<String> = listOf("Jesus", "Eduardo")) {
-    Column(modifier = modifier.padding(vertical = 4.dp)) {
-        for (name in names) {
+fun Greetings(modifier: Modifier = Modifier, names: List<String> = List(20) { "$it ${getFizzBuzz(it)}".trim() }) {
+    LazyColumn(modifier = modifier.padding(vertical = 4.dp)) {
+        items(items = names) { name ->
             Greeting(name = name)
         }
     }
@@ -75,14 +77,18 @@ fun Greetings(modifier: Modifier = Modifier, names: List<String> = listOf("Jesus
 
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier) {
-    val expanded = remember { mutableStateOf(false) }
-    val extraPadding = if (expanded.value) 48.dp else 0.dp
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    val extraPadding by animateDpAsState(
+        if (expanded) 48.dp else 0.dp,
+        label = "",
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)
+    )
     Surface(modifier = modifier.padding(vertical = 4.dp, horizontal = 8.dp), color = MaterialTheme.colorScheme.primary) {
         Row(modifier = modifier.padding(24.dp)) {
             Column(
                 modifier = modifier
                     .weight(1f)
-                    .padding(bottom = extraPadding)
+                    .padding(bottom = extraPadding.coerceAtLeast(0.dp))
             ) {
                 Text(
                     text = "Hello"
@@ -91,8 +97,8 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                     text = "$name!"
                 )
             }
-            ElevatedButton(onClick = { expanded.value = !expanded.value }) {
-                Text(text = if (expanded.value) "Show less" else "Show more")
+            ElevatedButton(onClick = { expanded = !expanded }) {
+                Text(text = if (expanded) "Show less" else "Show more")
             }
         }
     }
@@ -119,5 +125,14 @@ fun OnboardingPreview() {
 fun GreetingPreview() {
     BasicsConceptsCodelabTheme {
         Greetings()
+    }
+}
+
+fun getFizzBuzz(item: Int): String {
+    return when (true) {
+        (item % 15 == 0) -> "FizzBuzz"
+        (item % 3 == 0) -> "Fizz"
+        (item % 5 == 0) -> "Buzz"
+        else -> String()
     }
 }
